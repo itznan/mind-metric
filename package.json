@@ -1,0 +1,13 @@
+{
+  "name": "student-success-platform",
+  "version": "1.0.0",
+  "description": "AI-Powered Student Analytics and Success Platform for KPMG Challenge",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "csv-parse": "^5.6.0",
+    "express": "^4.21.2"
+  }
+}

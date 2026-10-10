@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudentSuccess | AI-Powered Student Analytics</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Plotly.js for interactive responsive charts -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation & Model Settings -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon">🎓</span>
+        <div class="brand-text">
+          <h1>StudentSuccess</h1>
+          <p>AI Student Analytics & Retention</p>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-page="overview">
+          <span class="icon">📊</span> Overview
+        </button>
+        <button class="nav-item" data-page="explorer">
+          <span class="icon">🔍</span> Student Explorer
+        </button>
+        <button class="nav-item" data-page="at-risk">
+          <span class="icon">⚠️</span> At-Risk List
+        </button>
+        <button class="nav-item" data-page="surveys">
+          <span class="icon">📝</span> Daily Surveys & Faculty Hub
+        </button>
+        <button class="nav-item" data-page="guide">
+          <span class="icon">📖</span> How to Use
+        </button>
+      </nav>
+
+      <div class="sidebar-config">
+        <h3>MODEL CONFIGURATION</h3>
+        <div class="form-group">
+          <label for="provider-select">Inference Provider</label>
+          <select id="provider-select">
+            <option value="ollama">Ollama (Local LLM)</option>
+            <option value="claude">Claude (Anthropic API)</option>
+            <option value="rule-based">Rule-Based Fallback</option>
+          </select>
+        </div>
+
+        <div id="ollama-settings" class="provider-fields">
+          <div class="form-group">
+            <label for="ollama-host">Ollama Host</label>
+            <input type="text" id="ollama-host" value="http://localhost:11434">
+          </div>
+          <div class="form-group">
+            <label for="ollama-model">Ollama Model</label>
+            <input type="text" id="ollama-model" value="qwen2.5:3b">
+          </div>
+        </div>
+
+        <div id="claude-settings" class="provider-fields" style="display: none;">
+          <div class="form-group">
+            <label for="claude-key">Anthropic API Key</label>
+            <input type="password" id="claude-key" placeholder="sk-ant-api...">
+          </div>
+        </div>
+
+        <button id="save-config-btn" class="btn-secondary">Save Config</button>
+        <div id="config-status" class="config-status"></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <p><strong>KPMG Challenge</strong><br>Dataset: UCI Higher Education<br>(4,424 records)</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Decision Support Mandatory Notice -->
+      <div class="notice-banner">
+        <strong>Notice:</strong> Predictions come from a general pretrained model, not trained on this data. 
+        Treat as decision support, not a final judgement.
+      </div>
+
+      <!-- PAGE 1: OVERVIEW -->
+      <section id="page-overview" class="page-section active">
+        <div class="section-header">
+          <h2>Cohort Overview</h2>
+          <p class="subtitle">Global student population retention KPIs and distribution across risk drivers.</p>
+        </div>
+
+        <!-- Metric KPI Cards -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Cohort Size</div>
+            <div class="metric-value" id="kpi-total">4,424</div>
+            <div class="metric-sub">Total enrolled student records</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Dropout Rate</div>
+            <div class="metric-value text-danger" id="kpi-dropout">32.1%</div>
+            <div class="metric-sub" id="kpi-dropout-count">1,421 students dropped out</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Graduation Rate</div>
+            <div class="metric-value text-success" id="kpi-grad">49.9%</div>
+            <div class="metric-sub" id="kpi-grad-count">2,209 students graduated</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Still Enrolled</div>
+            <div class="metric-value text-primary" id="kpi-enrolled">18.0%</div>
+            <div class="metric-sub" id="kpi-enrolled-count">794 active degree seekers</div>
+          </div>
+        </div>
+
+        <!-- Tab Controls for Charts -->
+        <div class="tab-container">
+          <div class="tab-nav">
+            <button class="tab-btn active" data-tab="tab-courses">Degree Program Breakdown</button>
+            <button class="tab-btn" data-tab="tab-drivers">Financial & Scholarship Drivers</button>
+          </div>
+
+          <div id="tab-courses" class="tab-content active">
+            <div class="chart-container" id="chart-courses"></div>
+          </div>
+
+          <div id="tab-drivers" class="tab-content">
+            <div class="charts-row">
+              <div class="chart-container" id="chart-tuition"></div>
+              <div class="chart-container" id="chart-scholarship"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 2: STUDENT EXPLORER -->
+      <section id="page-explorer" class="page-section">
+        <div class="section-header">
+          <h2>Student Explorer & AI Risk Assessment</h2>
+          <p class="subtitle">Examine semester trajectory and generate zero-shot model dropout risk predictions.</p>
+        </div>
+
+        <!-- Student Selector Row -->
+        <div class="explorer-controls">
+          <div class="form-group flex-grow">
+            <label for="student-selector">Select or Search Student ID</label>
+            <select id="student-selector">
+              <option value="">Loading students...</option>
+            </select>
+          </div>
+          <button id="random-student-btn" class="btn-secondary" title="Pick a random student">🎲 Random Student</button>
+        </div>
+
+        <!-- Profile Snapshot Cards -->
+        <div class="profile-cards-grid">
+          <div class="metric-card">
+            <div class="metric-label">Degree Program</div>
+            <div class="card-bold" id="card-course">-</div>
+            <div class="metric-sub" id="card-age">-</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Tuition Status</div>
+            <div class="card-bold" id="card-tuition">-</div>
+            <div class="metric-sub" id="card-debtor">-</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Scholarship Grant</div>
+            <div class="card-bold" id="card-scholarship">-</div>
+            <div class="metric-sub" id="card-attendance">-</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">1st Sem Completion</div>
+            <div class="card-bold" id="card-s1">-</div>
+            <div class="metric-sub" id="card-s1-grade">-</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">2nd Sem Completion</div>
+            <div class="card-bold" id="card-s2">-</div>
+            <div class="metric-sub" id="card-s2-grade">-</div>
+          </div>
+        </div>
+
+        <!-- Journey Chart & AI Inference Card -->
+        <div class="explorer-grid">
+          <div class="explorer-chart-box">
+            <h3>Academic Journey Progression</h3>
+            <div id="chart-journey"></div>
+          </div>
+
+          <div class="explorer-ai-box">
+            <div class="ai-box-header">
+              <h3>Zero-Shot Risk Prediction</h3>
+              <button id="re-predict-btn" class="btn-primary-sm">Run AI Analysis</button>
+            </div>
+
+            <div id="ai-loading" class="ai-loading" style="display: none;">
+              <div class="spinner"></div>
+              <span>Evaluating student features via <span id="loading-provider-label">LLM</span>...</span>
+            </div>
+
+            <div id="ai-result-card" class="risk-card">
+              <div class="risk-header">
+                <div class="risk-badges">
+                  <span id="ai-risk-badge" class="badge-high">HIGH RISK</span>
+                  <span id="ai-prob-text" class="risk-prob">75% Dropout Probability</span>
+                </div>
+                <span id="ai-provider-badge" class="source-tag">ollama (qwen2.5:3b)</span>
+              </div>
+
+              <div class="progress-bar-container">
+                <div id="ai-progress-bar" class="progress-bar bg-danger" style="width: 75%;"></div>
+              </div>
+
+              <div id="ai-warning-box" class="warning-callout" style="display: none;"></div>
+
+              <div class="risk-reasons-section">
+                <h4>PRIMARY RISK SIGNALS</h4>
+                <ul id="ai-reasons-list">
+                  <li>Tuition fees are overdue</li>
+                  <li>Low 2nd semester unit completion</li>
+                </ul>
+              </div>
+
+              <div class="risk-action-section">
+                <h4>RECOMMENDED ACTION</h4>
+                <div id="ai-action-text" class="action-box">
+                  Immediate financial counselor outreach to establish tuition payment plan and academic support.
+                </div>
+              </div>
+
+              <details class="deidentified-details">
+                <summary>Inspect Raw De-identified Features Sent to LLM</summary>
+                <pre id="ai-payload-preview">{}</pre>
+              </details>
+            </div>
+          </div>
+        </div>
+
+        <!-- MENTAL HEALTH & PEER GROWTH PIPELINE -->
+        <div class="growth-pipeline-container">
+          <div class="growth-header">
+            <div>
+              <h3>🌱 Mental Health & Peer Growth Pipeline</h3>
+              <p class="subtitle">Cohort peer-benchmarking, cognitive strain analysis, and an AI-generated student growth roadmap.</p>
+            </div>
+            <button id="re-growth-btn" class="btn-primary-sm">Run Growth AI Analysis</button>
+          </div>
+
+          <!-- Peer Benchmarks Grid -->
+          <div class="peer-grid">
+            <div class="peer-card">
+              <div class="peer-card-title">Coursework Completion</div>
+              <div class="peer-metric-row">
+                <div class="peer-stat">
+                  <span class="label">Student</span>
+                  <span class="value" id="peer-student-comp">-</span>
+                </div>
+                <div class="peer-vs">vs</div>
+                <div class="peer-stat">
+                  <span class="label">Cohort Avg</span>
+                  <span class="value text-muted" id="peer-avg-comp">-</span>
+                </div>
+              </div>
+              <div class="peer-delta" id="peer-comp-delta">-</div>
+            </div>
+
+            <div class="peer-card">
+              <div class="peer-card-title">Academic Grade Velocity</div>
+              <div class="peer-metric-row">
+                <div class="peer-stat">
+                  <span class="label">Student</span>
+                  <span class="value" id="peer-student-grade">-</span>
+                </div>
+                <div class="peer-vs">vs</div>
+                <div class="peer-stat">
+                  <span class="label">Cohort Avg</span>
+                  <span class="value text-muted" id="peer-avg-grade">-</span>
+                </div>
+              </div>
+              <div class="peer-delta" id="peer-grade-delta">-</div>
+            </div>
+
+            <div class="peer-card">
+              <div class="peer-card-title">Exam Evaluation Attendance</div>
+              <div class="peer-metric-row">
+                <div class="peer-stat">
+                  <span class="label">Evaluations</span>
+                  <span class="value" id="peer-student-eval">-</span>
+                </div>
+                <div class="peer-vs">vs</div>
+                <div class="peer-stat">
+                  <span class="label">Cohort Avg</span>
+                  <span class="value text-muted" id="peer-avg-eval">-</span>
+                </div>
+              </div>
+              <div class="peer-delta" id="peer-eval-delta">-</div>
+            </div>
+
+            <div class="peer-card">
+              <div class="peer-card-title">Relocation & Stress Factors</div>
+              <div class="peer-stat" style="text-align: left; margin-top: 0.5rem;">
+                <span class="value" id="peer-displaced-status" style="font-size: 1.05rem;">-</span>
+                <span class="metric-sub" id="peer-displaced-sub">Social adjustment</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Burnout & Growth Plan Box -->
+          <div class="growth-card">
+            <div class="growth-card-top">
+              <div class="risk-badges">
+                <span id="growth-burnout-badge" class="badge-medium">MODERATE STRAIN</span>
+                <span id="growth-burnout-score" class="risk-prob">45% Burnout Vulnerability</span>
+              </div>
+              <span id="growth-provider-badge" class="source-tag">ollama (qwen2.5:3b)</span>
+            </div>
+
+            <div class="progress-bar-container">
+              <div id="growth-progress-bar" class="progress-bar bg-warning" style="width: 45%;"></div>
+            </div>
+
+            <div class="growth-summary-box" id="growth-summary-text">
+              Comparing student trajectory against degree cohort peers...
+            </div>
+
+            <!-- Wellness & Strain Signals -->
+            <div class="wellness-signals-section">
+              <h4>IDENTIFIED WELLNESS & COGNITIVE STRAIN SIGNALS</h4>
+              <ul id="wellness-signals-list">
+                <li>Evaluating stress markers...</li>
+              </ul>
+            </div>
+
+            <!-- 3-Stage Growth Action Plan -->
+            <div class="growth-stages-section">
+              <h4>PERSONALIZED 3-STAGE RECOVERY & GROWTH ROADMAP</h4>
+              <div class="growth-stages-grid" id="growth-stages-container">
+                <!-- Dynamically populated 3 stages -->
+              </div>
+            </div>
+
+            <!-- Advisor Empathy Note -->
+            <div class="advisor-empathy-section">
+              <h4>COUNSELOR EMPATHIC CONVERSATION STARTER</h4>
+              <blockquote id="advisor-empathy-quote" class="empathy-quote">
+                "How are you feeling about your workload lately? We can explore pacing that supports both your wellness and credits."
+              </blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 3: AT-RISK LIST -->
+      <section id="page-at-risk" class="page-section">
+        <div class="section-header">
+          <h2>Cohort At-Risk Priority List</h2>
+          <p class="subtitle">Fast rule-based evaluation across all 4,424 students. Sort and inspect students in real time.</p>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filters-bar">
+          <div class="form-group">
+            <label for="filter-risk">Risk Level</label>
+            <select id="filter-risk">
+              <option value="All">All Risk Levels</option>
+              <option value="High">High Risk Only</option>
+              <option value="Medium">Medium Risk</option>
+              <option value="Low">Low Risk</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-tuition">Tuition Status</label>
+            <select id="filter-tuition">
+              <option value="All">All Tuition</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Up to date">Up to date</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filter-course">Degree Program</label>
+            <select id="filter-course">
+              <option value="All Programs">All Programs</option>
+            </select>
+          </div>
+          <div class="form-group flex-grow">
+            <label for="filter-search">Search ID or Course</label>
+            <input type="text" id="filter-search" placeholder="Type STU-0012 or Informatics...">
+          </div>
+        </div>
+
+        <!-- Summary Counters -->
+        <div class="filter-counters">
+          <div>Matching Students: <strong id="count-matching">0</strong></div>
+          <div>High Risk: <strong id="count-high-risk" class="text-danger">0</strong></div>
+          <div>Overdue Tuition: <strong id="count-overdue" class="text-danger">0</strong></div>
+        </div>
+
+        <!-- Interactive Table -->
+        <div class="table-container">
+          <table class="data-table" id="at-risk-table">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Risk Tier</th>
+                <th>Dropout Risk</th>
+                <th>Degree Program</th>
+                <th>Tuition</th>
+                <th>Scholarship</th>
+                <th>S1 Appr.</th>
+                <th>S2 Appr.</th>
+                <th>Historical Target</th>
+                <th>Primary Risk Signal</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="at-risk-tbody">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PAGE: DAILY SURVEYS & FACULTY HUB -->
+      <section id="page-surveys" class="page-section">
+        <div class="section-header">
+          <h2>Daily Student Surveys & Faculty Hub</h2>
+          <p class="subtitle">Real-time pulse checks: Students share daily well-being reflections, while faculty create targeted surveys and review AI cohort synthesis.</p>
+        </div>
+
+        <div class="tab-container">
+          <div class="tab-nav">
+            <button class="tab-btn active" data-tab="tab-survey-take">Student Pulse Portal (Take Survey)</button>
+            <button class="tab-btn" data-tab="tab-survey-faculty">Professor Hub (Analytics & AI Brief)</button>
+            <button class="tab-btn" data-tab="tab-survey-create">Create New Survey (Faculty)</button>
+          </div>
+
+          <!-- SUB-TAB 1: STUDENT TAKE SURVEY -->
+          <div id="tab-survey-take" class="tab-content active">
+            <div class="survey-take-container">
+              <div class="survey-selector-bar">
+                <div class="form-group flex-grow">
+                  <label for="take-survey-select">Select Active Survey</label>
+                  <select id="take-survey-select"></select>
+                </div>
+                <div class="form-group">
+                  <label for="take-student-id">Student ID</label>
+                  <input type="text" id="take-student-id" value="STU-0003" placeholder="e.g. STU-0001">
+                </div>
+              </div>
+
+              <div id="survey-form-card" class="survey-form-card">
+                <div class="survey-form-header">
+                  <h3 id="form-survey-title">Loading survey...</h3>
+                  <span id="form-survey-course" class="source-tag">All Programs</span>
+                </div>
+
+                <form id="student-survey-form">
+                  <div id="survey-questions-container" class="survey-questions-list">
+                    <!-- Dynamic Questions -->
+                  </div>
+
+                  <div class="form-actions" style="margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary">Submit Daily Reflection ➔</button>
+                    <span id="survey-submit-status" class="submit-status-msg"></span>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-TAB 2: PROFESSOR HUB -->
+          <div id="tab-survey-faculty" class="tab-content">
+            <div class="faculty-hub-container">
+              <div class="faculty-controls-bar">
+                <div class="form-group flex-grow">
+                  <label for="faculty-survey-select">Survey to Analyze</label>
+                  <select id="faculty-survey-select"></select>
+                </div>
+                <button id="refresh-survey-ai-btn" class="btn-primary-sm">Generate AI Cohort Brief</button>
+              </div>
+
+              <!-- Top KPI Stats -->
+              <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+                <div class="metric-card">
+                  <div class="metric-label">Total Submissions</div>
+                  <div class="metric-value" id="f-stat-count">0</div>
+                  <div class="metric-sub">Active student responses</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">Cohort Strain Level</div>
+                  <div class="metric-value text-danger" id="f-stat-strain">Moderate</div>
+                  <div class="metric-sub">Workload & emotional index</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">Average Comprehension</div>
+                  <div class="metric-value text-primary" id="f-stat-comp">3.8 / 5</div>
+                  <div class="metric-sub">Lecture & lab confidence</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">Support Requests</div>
+                  <div class="metric-value text-warning" id="f-stat-flagged">0</div>
+                  <div class="metric-sub">Flagged for advisor outreach</div>
+                </div>
+              </div>
+
+              <!-- AI Executive Brief for Professors -->
+              <div class="ai-faculty-brief-card">
+                <div class="brief-header">
+                  <div>
+                    <h4>AI Faculty Executive Brief & Lecture Synthesis</h4>
+                    <p class="subtitle" style="font-size: 0.8rem; margin: 0;">Automated zero-shot distillation of student qualitative feedback and sentiment.</p>
+                  </div>
+                  <span id="f-ai-status-badge" class="badge-medium">EVALUATING</span>
+                </div>
+
+                <div class="brief-body">
+                  <div class="brief-section">
+                    <strong>KEY COHORT TAKEAWAYS</strong>
+                    <ul id="f-ai-takeaways">
+                      <li>Loading student survey analysis...</li>
+                    </ul>
+                  </div>
+
+                  <div class="brief-section">
+                    <strong>RECOMMENDED LECTURE & ADVISING ADJUSTMENTS</strong>
+                    <div id="f-ai-adjustments" class="action-box">
+                      Analyzing responses...
+                    </div>
+                  </div>
+
+                  <div class="brief-section">
+                    <strong>STUDENTS REQUIRING IMMEDIATE CHECK-IN</strong>
+                    <ul id="f-ai-flagged-students" style="color: #B91C1C;">
+                      <li>None flagged</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Responses Analytics & Feed -->
+              <div class="faculty-responses-section">
+                <h4>Recent Student Submissions Feed</h4>
+                <div id="faculty-feed-container" class="responses-feed">
+                  <!-- Dynamically populated response tiles -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-TAB 3: CREATE NEW SURVEY -->
+          <div id="tab-survey-create" class="tab-content">
+            <div class="create-survey-card">
+              <h3>Create a New Daily or Module Survey</h3>
+              <p class="subtitle" style="margin-bottom: 1.25rem;">Deploy instant pulse checks across your courses to detect early academic friction.</p>
+
+              <form id="create-survey-form">
+                <div class="form-row">
+                  <div class="form-group flex-grow">
+                    <label for="new-srv-title">Survey Title</label>
+                    <input type="text" id="new-srv-title" placeholder="e.g. Week 7 Midterm Readiness & Well-Being Pulse" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="new-srv-course">Target Degree Program</label>
+                    <select id="new-srv-course">
+                      <option value="All Programs">All Programs</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="new-srv-author">Faculty / Professor Name</label>
+                    <input type="text" id="new-srv-author" value="Prof. Anderson" required>
+                  </div>
+                </div>
+
+                <div class="builder-section">
+                  <div class="builder-header">
+                    <h4>SURVEY QUESTIONS</h4>
+                    <button type="button" id="add-question-btn" class="btn-secondary">+ Add Question</button>
+                  </div>
+                  <div id="builder-questions-list" class="builder-list">
+                    <!-- Dynamic Question items -->
+                  </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 1.5rem;">
+                  <button type="submit" class="btn-primary">Publish Survey to Students ➔</button>
+                  <span id="create-srv-status" class="submit-status-msg"></span>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE: HOW TO USE -->
+      <section id="page-guide" class="page-section">
+        <div class="section-header">
+          <h2>System Architecture & Operational Guide</h2>
+          <p class="subtitle">Platform design, model switching, privacy guarantees, and usage instructions.</p>
+        </div>
+
+        <div class="guide-content">
+          <div class="guide-card">
+            <h3>1. What StudentSuccess Does</h3>
+            <p>
+              StudentSuccess is a decision-support platform designed for academic advisors and retention committees.
+              It identifies students at risk of dropout before they abandon their degrees, explains the underlying 
+              academic and financial signals, and prescribes concrete intervention recommendations.
+            </p>
+          </div>
+
+          <div class="guide-card">
+            <h3>2. Model Switching & Inference Modes</h3>
+            <p>The platform supports three switchable modalities:</p>
+            <ul>
+              <li>
+                <strong>Ollama (Default Local Small Model):</strong> Runs open-weights models locally (e.g. <code>qwen2.5:3b</code> or <code>llama3.2:3b</code>) 
+                via <code>http://localhost:11434</code>. Completely on-premise, zero cloud API fees.
+              </li>
+              <li>
+                <strong>Claude (Anthropic API):</strong> Uses Anthropic's fast <code>claude-haiku-5-5</code> model for zero-shot JSON inference. 
+                Configure via <code>ANTHROPIC_API_KEY</code> or directly in the sidebar.
+              </li>
+              <li>
+                <strong>Rule-Based Fallback (Offline):</strong> When no model is running or an API key is absent, the system automatically 
+                evaluates students using a deterministic scoring engine based on tuition arrears, unit completion ratios, and academic averages.
+              </li>
+            </ul>
+          </div>
+
+          <div class="guide-card">
+            <h3>3. How to Install and Run Ollama</h3>
+            <p>To use local zero-shot predictions on Linux or macOS:</p>
+            <pre><code># 1. Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 2. Download and run a small model
+ollama run qwen2.5:3b
+
+# 3. Start the StudentSuccess Node.js server
+export MODEL_PROVIDER=ollama
+npm start</code></pre>
+          </div>
+
+          <div class="guide-card">
+            <h3>4. Data Privacy & Ethical AI Standards</h3>
+            <ul>
+              <li><strong>Zero PII Exposure:</strong> No student names, national identification numbers, or student IDs are sent to LLMs. Only numeric grades, unit tallies, and categorical status indicators are transmitted.</li>
+              <li><strong>Human-in-the-Loop:</strong> Predictions are labeled as decision support and designed to assist human counselors in prioritizing outreach, not to automatically disqualify students.</li>
+            </ul>
+          </div>
+
+          <div class="guide-card">
+            <h3>5. Dataset Context & Limitations</h3>
+            <p>
+              The platform runs on the UCI Higher Education benchmark dataset (4,424 students from the Polytechnic Institute of Portalegre, Portugal). 
+              In real institutional deployments, predictive policies and models should be calibrated against the specific university's local demographic and grading parameters.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

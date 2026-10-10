@@ -1,0 +1,145 @@
+{
+  "surveys": [
+    {
+      "id": "srv_1",
+      "title": "Daily Student Well-Being & Academic Pulse",
+      "target_course": "All Programs",
+      "created_by": "Prof. Anderson (Dean of Student Success)",
+      "created_at": "2026-10-09T08:00:00.000Z",
+      "status": "active",
+      "questions": [
+        {
+          "id": "q1",
+          "text": "How are you feeling mentally and emotionally today?",
+          "type": "mood",
+          "options": [
+            "Great",
+            "Good",
+            "Okay",
+            "Stressed",
+            "Overwhelmed"
+          ]
+        },
+        {
+          "id": "q2",
+          "text": "How manageable is your current academic workload this week?",
+          "type": "rating",
+          "scale": 5,
+          "labels": [
+            "1 (Severe Overload)",
+            "5 (Very Manageable)"
+          ]
+        },
+        {
+          "id": "q3",
+          "text": "How confident do you feel about upcoming exam evaluations?",
+          "type": "rating",
+          "scale": 5,
+          "labels": [
+            "1 (Very Anxious)",
+            "5 (Fully Prepared)"
+          ]
+        },
+        {
+          "id": "q4",
+          "text": "What is the biggest blocker or challenge you are facing right now?",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "srv_2",
+      "title": "Module Pacing & Lecture Comprehension Check",
+      "target_course": "Informatics Engineering",
+      "created_by": "Dr. Silva (Dept. Chair)",
+      "created_at": "2026-10-10T07:30:00.000Z",
+      "status": "active",
+      "questions": [
+        {
+          "id": "q1",
+          "text": "Did you feel the pace of today's technical module was appropriate?",
+          "type": "choice",
+          "options": [
+            "Too Fast",
+            "Just Right",
+            "Too Slow"
+          ]
+        },
+        {
+          "id": "q2",
+          "text": "Rate your understanding of today's laboratory exercise:",
+          "type": "rating",
+          "scale": 5,
+          "labels": [
+            "1 (Lost)",
+            "5 (Mastered)"
+          ]
+        },
+        {
+          "id": "q3",
+          "text": "Would an extra peer-tutoring review session before next Tuesday help you?",
+          "type": "choice",
+          "options": [
+            "Yes, definitely",
+            "Maybe",
+            "No, I am confident"
+          ]
+        }
+      ]
+    }
+  ],
+  "responses": [
+    {
+      "id": "resp_1791606143290",
+      "survey_id": "srv_1",
+      "student_id": "STU-0004",
+      "course": "Advertising & Marketing",
+      "submitted_at": "2026-10-10T04:22:23.290Z",
+      "answers": {
+        "q1": "Great",
+        "q2": 5,
+        "q3": 5,
+        "q4": "Feeling confident after the tutoring session."
+      }
+    },
+    {
+      "id": "resp_1",
+      "survey_id": "srv_1",
+      "student_id": "STU-0003",
+      "course": "Communication Design",
+      "submitted_at": "2026-10-10T08:15:00.000Z",
+      "answers": {
+        "q1": "Overwhelmed",
+        "q2": 1,
+        "q3": 1,
+        "q4": "Struggling to balance commute and tuition debt. Fell behind on design project deadlines."
+      }
+    },
+    {
+      "id": "resp_2",
+      "survey_id": "srv_1",
+      "student_id": "STU-0001",
+      "course": "Animation & Multimedia",
+      "submitted_at": "2026-10-10T08:30:00.000Z",
+      "answers": {
+        "q1": "Stressed",
+        "q2": 2,
+        "q3": 2,
+        "q4": "Studying alone in student dorms is difficult. Need advice on how to prep for unit evaluations."
+      }
+    },
+    {
+      "id": "resp_3",
+      "survey_id": "srv_1",
+      "student_id": "STU-0002",
+      "course": "Social Service (Day)",
+      "submitted_at": "2026-10-10T08:45:00.000Z",
+      "answers": {
+        "q1": "Good",
+        "q2": 4,
+        "q3": 4,
+        "q4": "Course group work is going well. Just making sure I stay on top of readings."
+      }
+    }
+  ]
+}
