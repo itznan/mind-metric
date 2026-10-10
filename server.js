@@ -1240,6 +1240,11 @@ loadDataset();
 loadSurveys();
 
 
-app.listen(PORT, () => {
-  console.log(`StudentSuccess platform running on http://localhost:${PORT}`);
-});
+// Export app for serverless platforms (Vercel) & listen for local/standalone
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`StudentSuccess platform running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

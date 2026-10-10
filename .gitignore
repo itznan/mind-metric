@@ -5,3 +5,4 @@ __pycache__/
 .env
 rulebook_text.txt
 .DS_Store
+cloudflared
