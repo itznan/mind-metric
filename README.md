@@ -1,6 +1,7 @@
 # 🎓 StudentSuccess: AI-Powered Student Analytics & Success Platform
 
-> **Project Title**: **StudentSuccess**  
+> **Project Title**: **MindMetric** *(StudentSuccess AI Platform)*  
+> **Repository Link**: [https://github.com/itznan/mind-metric](https://github.com/itznan/mind-metric)  
 > **One-Line Summary**: A zero-shot, privacy-first student retention intelligence platform delivering explainable dropout risk scoring, longitudinal journey timelines, mental health peer growth roadmaps, and real-time daily surveys with zero custom model training.  
 > **Competition Track**: KPMG Challenge — *AI-Powered Student Analytics and Success Platform*  
 > **Hackathon**: HacXLerate 2026 (Round 1 Campus Hackathon)  
